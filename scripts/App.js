@@ -39,7 +39,8 @@ class App {
   }
 
   temp = {
-    tailTemp: this.snakeEnds.tail
+    tailTemp: this.snakeEnds.tail,
+    direction: 'right'
   }
 
   helpers = {
@@ -298,6 +299,9 @@ updateEmpties(isFood, nextObj, tailObj) {
       newFoodElement.classList.toggle("food", true);
     }
     // console.log(nextElement);
+
+    //controls
+    this. controlsListener();
   }
 
   controlsListener() {
@@ -324,7 +328,7 @@ updateEmpties(isFood, nextObj, tailObj) {
           }
           break;
       }
-    });
+    }, {once: true}); // фикс бага
   }
 
   restartListener() {
