@@ -2,7 +2,7 @@ class App {
   fieldValues = {
     FIELD_SIZE: 10,
     MODEL: [],
-    DELAY: 150,
+    DELAY: 200,
     IS_ACTIVE: true
   };
 
@@ -38,17 +38,26 @@ class App {
     movementDirection: structuredClone(this.movementDirection)
   }
 
+  temp = {
+    tailTemp: this.snakeEnds.tail
+  }
+
   helpers = {
     getRandomCell(a, b) {
       return {
-        x: Math.floor(Math.random() * (b - a + 1)) + a,
-        y: Math.floor(Math.random() * (b - a + 1)) + a,
+        x: this.getRandomInt(a, b),
+        y: this.getRandomInt(a, b)
       };
     },
+
+    getRandomInt(a, b) {
+        return Math.floor(Math.random() * (b - a + 1)) + a;
+    }
   };
 
   constructor() {
     this.createModel();
+    this.createArrayOfEmpty();
     this.putFoodToModel();
     this.displayField();
 
@@ -75,20 +84,31 @@ class App {
     }
   }
 
+  createArrayOfEmpty() {
+    this.fieldValues.EMPTIES = [];
+    const arrLink = this.fieldValues.EMPTIES;
+    this.fieldValues.MODEL.forEach((row, y) => {
+        row.forEach((cell, x) => {
+            if (this.fieldValues.MODEL[y][x] === this.cellState.EMPTY_CELL) {
+                arrLink.push({ 
+                    x: x, 
+                    y: y 
+                });
+            }
+        })
+    })
+    console.log(arrLink);
+  }
+
   putFoodToModel() {
     // рандомная ячейка
-    const randomCell = this.helpers.getRandomCell(0,this.fieldValues.FIELD_SIZE - 1);
-    // проверка на змею. Возможно нужно генерить изначально вокруг змеи, ибо под конец неизвестно сколько будет тыкать в змею
-    if (!this.SNAKE.some((obj) => {
-        if (obj.x === randomCell.x && obj.y === randomCell.y) return true;
-        return false;
-      })) {
-        this.fieldValues.MODEL[randomCell.y][randomCell.x] = this.cellState.FOOD_CELL;
-        return randomCell;
-      } else {
-      console.log('по-новой');
-      return this.putFoodToModel();
-    }
+    const randomIndex = this.helpers.getRandomInt(0, this.fieldValues.EMPTIES.length - 1);
+    const randomCell = this.fieldValues.EMPTIES[randomIndex];
+    this.fieldValues.MODEL[randomCell.y][randomCell.x] = this.cellState.FOOD_CELL;
+    this.fieldValues.EMPTIES.splice(randomIndex, 1);
+    // this.fieldValues.EMPTIES.splice(randomIndex, 1);
+    console.log('put-food', this.fieldValues.EMPTIES);
+    return randomCell;
   }
 
   displayField() {
@@ -144,13 +164,44 @@ class App {
     }
   }
 
+//     const indexOfNext = arrLink.indexOf({ x: nextObj.x, y: nextObj.y });
+//     arrLink.splice(indexOfNext, 1);
+
+//     if (!isFood) {
+//         arrLink.push(tailObj);
+//     }
+//     console.log('update', structuredClone(arrLink));
+//   }
+updateEmpties(isFood, nextObj, tailObj) {
+    const arrLink = this.fieldValues.EMPTIES;
+    
+    const indexOfNext = arrLink.findIndex(cell => cell.x === nextObj.x && cell.y === nextObj.y);
+    if (indexOfNext !== -1) {
+      arrLink.splice(indexOfNext, 1);
+    }
+  
+    if (!isFood) {
+      arrLink.push(tailObj);
+    }
+  
+    console.log('update', structuredClone(arrLink));
+  }
+  
+
   update() {
     // lock при неактивной игре (проигрыш)
     if (!this.fieldValues.IS_ACTIVE) return -1;
 
-    console.log("Текущая змея:", structuredClone(this.SNAKE));
-    console.log("Текущее поле:", structuredClone(this.fieldValues.MODEL));
-    console.log("Текущее концы:", structuredClone(this.snakeEnds));
+    // проверка на победу
+    if (this.SNAKE.length === this.fieldValues.FIELD_SIZE**2) {
+        this.winActions();
+        this.fieldValues.IS_ACTIVE = false;
+        return -1;
+    }
+
+    // console.log("Текущая змея:", structuredClone(this.SNAKE));
+    // console.log("Текущее поле:", structuredClone(this.fieldValues.MODEL));
+    // console.log("Текущее концы:", structuredClone(this.snakeEnds));
 
     let isSteppedOnFood = false; // для обновления DOM
 
@@ -182,10 +233,24 @@ class App {
         break;
     }
 
-    const nextObj = {
-      x: snakeNextX,
-      y: snakeNextY,
-    };
+    const 
+        nextObj = {
+        x: snakeNextX,
+        y: snakeNextY,
+        },
+        tailObj = {
+            x: snakeTailX,
+            y: snakeTailY
+        }
+
+
+    // проверяю на выход за карту
+    const checkEdge = [-1, this.fieldValues.FIELD_SIZE];
+    if (checkEdge.some(el => el === nextObj.x) || checkEdge.some(el => el === nextObj.y)) {
+        this.looseActions();
+        this.fieldValues.IS_ACTIVE = false;
+        return -1;
+    }
 
     // DOM-элемент следующей клетки
     const nextElement = document.querySelector(
@@ -219,6 +284,7 @@ class App {
     //
     this.updateModel(nextObj, isSteppedOnFood);
     this.updateEnds();
+    this.updateEmpties(isSteppedOnFood, nextObj, tailObj);
     // обновление экрана
     nextElement.classList.toggle("snake-body", true);
     nextElement.classList.toggle("food", false);
@@ -240,22 +306,22 @@ class App {
         case "ArrowRight":
           if (this.movementDirection.current !== this.movementDirection.left) {
             this.movementDirection.current = this.movementDirection.right;
-          } else this.keyError();
+          }
           break;
         case "ArrowDown":
           if (this.movementDirection.current !== this.movementDirection.up) {
             this.movementDirection.current = this.movementDirection.down;
-          } else this.keyError();
+          }
           break;
         case "ArrowLeft":
           if (this.movementDirection.current !== this.movementDirection.right) {
             this.movementDirection.current = this.movementDirection.left;
-          } else this.keyError();
+          }
           break;
         case "ArrowUp":
           if (this.movementDirection.current !== this.movementDirection.down) {
             this.movementDirection.current = this.movementDirection.up;
-          } else this.keyError();
+          }
           break;
       }
     });
@@ -276,6 +342,7 @@ class App {
         this.movementDirection= structuredClone(this.initialValues.movementDirection);
 
         this.createModel();
+        this.createArrayOfEmpty();
         this.putFoodToModel();
         this.displayField();
 
@@ -287,8 +354,6 @@ class App {
         // this.restartListener();
     })
   }
-
-  keyError() {}
 
   looseActions() {
     const looseElement = document.querySelector('.loose');
