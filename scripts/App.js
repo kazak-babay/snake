@@ -1,8 +1,8 @@
 class App {
 	fieldValues = {
-		FIELD_SIZE: 10,
+		FIELD_SIZE: 12,
 		MODEL: [],
-		DELAY: 1000,
+		DELAY: 100,
 		IS_ACTIVE: true,
 	};
 
@@ -33,7 +33,6 @@ class App {
 
 	temp = {
 		keys: ["right"],
-		invalid: [],
 	};
 
 	initialValues = {
@@ -208,8 +207,7 @@ class App {
 					nextObj: nextObj,
 				};
 			} else {
-				this.temp.invalid.unshift(direction);
-				console.log("else if:", structuredClone(this.temp));
+				this.temp.invalid = direction;
 			}
 		}
 	}
@@ -291,9 +289,9 @@ class App {
 		}
 
 		// пробрасываю последнее инвалидное направление в temp.keys, если такие есть в "очереди"
-		if (this.temp.invalid[0] !== undefined) {
-			this.temp.keys.unshift(this.temp.invalid[0]);
-			this.temp.invalid.length = 0;
+		if (this.temp.invalid !== undefined) {
+			this.temp.keys.unshift(this.temp.invalid);
+			this.temp.invalid = undefined;
 		}
 	}
 
